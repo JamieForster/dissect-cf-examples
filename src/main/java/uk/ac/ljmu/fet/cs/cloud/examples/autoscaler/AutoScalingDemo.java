@@ -163,6 +163,7 @@ public class AutoScalingDemo implements TraceExhaustionCallback {
 			totutil += (pm.getTotalProcessed() - preProcessingRecords.get(pm))
 					/ (simuTimespan * pm.getPerTickProcessingPower());
 		}
+		//TODO: ApDex Implementation?
 		System.out.println("Average utilisation of PMs: " + 100 * totutil / cloud.machines.size() + " %");
 		System.out.println("Total power consumption: " + energymeter.getTotalConsumption() / 1000 / 3600000 + " kWh");
 		System.out.println("Average queue time: " + jobhandler.getAverageQueueTime() + " s");
