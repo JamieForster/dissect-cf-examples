@@ -145,4 +145,45 @@ public class JobArrivalHandler extends Timed {
 		}
 		return totqt / jobs.size();
 	}
+	
+	/**
+	 * Extrapolates an ESTIMATION of Application Performance Index in order to gauge user
+	 * satisfaction. This should be queried only after all jobs have completed.
+	 * 
+	 * @author Jamie Forster
+	 * 
+	 * @param targetTime the target/expected process completion time
+	 * 
+	 * @return simulation's apdex rating between 0 and 1
+	 * 
+	 */
+	public double getApdex(double targetTime) {
+		double time; // Time taken
+		int satisfied = 0, tolerant = 0, frustrated = 0; // satisfaction zone counters
+
+		// Get total satisfied/tolerating count
+		for (int i = 0; i < totaljobcount; i++) {
+			time = jobs.get(i).getRealqueueTime();
+			
+			// If job has been simulated and completed, add its 'true' simulated execution time.
+			if(jobs.get(i).getRealstopTime() != -1) {
+				time += jobs.get(i).getRealstopTime();
+			} else { 
+				// Add execution time from trace file.
+				time += jobs.get(i).getExectimeSecs();
+			}
+
+			// Tally user satisfaction as according to Apdex satisfaction zone ranges
+			if (time < targetTime) {
+				satisfied++;
+			} else if (time > targetTime && time < (targetTime * 4)) {
+				tolerant++;
+			} else {
+				frustrated++;
+			}
+		}
+
+		// Calculate Apdex, return it.
+		return (double) (satisfied + (tolerant / 2)) / totaljobcount;
+	}
 }
