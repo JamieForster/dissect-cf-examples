@@ -42,8 +42,8 @@ public class JobArrivalHandler extends Timed {
 	/**
 	 * All jobs to be handled
 	 */
-	private final List<Job> jobs;
-	private final int totaljobcount;
+	private static List<Job> jobs;
+	private static int totaljobcount;
 	/**
 	 * The job scheduler to be used
 	 */
@@ -165,22 +165,23 @@ public class JobArrivalHandler extends Timed {
 		for (int i = 0; i < totaljobcount; i++) {
 			time = jobs.get(i).getRealqueueTime();
 			
-			// If job has been simulated and completed, add its 'true' simulated execution time.
-			if(jobs.get(i).getRealstopTime() != -1) {
-				time += jobs.get(i).getRealstopTime();
-			} else { 
-				// Add execution time from trace file.
-				time += jobs.get(i).getExectimeSecs();
-			}
+			if(time != -1) {
+				// If a job has been queue'd, check if it has been simulated.
+				if(jobs.get(i).getRealstopTime() != -1) {
+					// If job has been simulated and completed, add its 'true' simulated execution time.
+					time += jobs.get(i).getRealstopTime();
+				}
 
-			// Tally user satisfaction as according to Apdex satisfaction zone ranges
-			if (time < targetTime) {
-				satisfied++;
-			} else if (time > targetTime && time < (targetTime * 4)) {
-				tolerant++;
-			} else {
-				frustrated++;
+				// Tally user satisfaction as according to Apdex satisfaction zone ranges
+				if (time < targetTime) {
+					satisfied++;
+				} else if (time > targetTime && time < (targetTime * 4)) {
+					tolerant++;
+				} else {
+					frustrated++;
+				}
 			}
+			
 		}
 
 		// Calculate Apdex, return it.

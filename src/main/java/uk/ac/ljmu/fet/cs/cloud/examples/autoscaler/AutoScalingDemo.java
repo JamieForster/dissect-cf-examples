@@ -167,7 +167,7 @@ public class AutoScalingDemo implements TraceExhaustionCallback {
 		System.out.println("Average utilisation of PMs: " + 100 * totutil / cloud.machines.size() + " %");
 		System.out.println("Total power consumption: " + energymeter.getTotalConsumption() / 1000 / 3600000 + " kWh");
 		System.out.println("Average queue time: " + jobhandler.getAverageQueueTime() + " s");
-		System.out.println("Estimated application performance index: " + jobhandler.getApdex(1.5)); // Assumes a web-based trace
+		System.out.println("Estimated application performance index: " + jobhandler.getApdex(3)); // Assumes a web-based trace
 		System.out.println("Number of virtual appliances registered at the end of the simulation: "
 				+ cloud.repositories.get(0).contents().size());
 	}

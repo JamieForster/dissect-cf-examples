@@ -40,7 +40,11 @@ import hu.mta.sztaki.lpds.cloud.simulator.io.NetworkNode.NetworkException;
  *         Moores University, (c) 2019"
  */
 public class FirstFitJobScheduler implements JobLauncher, ConsumptionEvent {
-
+	
+	/** 
+	 * Next job to be launched.
+	 */
+	private Job nextJob;
 	/**
 	 * The virtual infrastructure this launcher will target with its jobs.
 	 */
@@ -75,8 +79,9 @@ public class FirstFitJobScheduler implements JobLauncher, ConsumptionEvent {
 	 */
 	@Override
 	public boolean launchAJob(final Job j) {
+		nextJob = j;
 		try {
-			final ArrayList<VirtualMachine> vmset = vi.vmSetPerKind.get(j.executable);
+			final ArrayList<VirtualMachine> vmset = vi.vmSetPerKind.get(nextJob.executable);
 			if (vmset != null) {
 				final int vmsetsize = vmset.size();
 				for (int i = 0; i < vmsetsize; i++) {
@@ -87,10 +92,10 @@ public class FirstFitJobScheduler implements JobLauncher, ConsumptionEvent {
 
 						// Ignores the processor count of the task, assumes that the full VM will be
 						// used all the time
-						vm.newComputeTask(j.getExectimeSecs() * 1000 * vm.getPerTickProcessingPower(),
+						vm.newComputeTask(nextJob.getExectimeSecs() * 1000 * vm.getPerTickProcessingPower(),
 								ResourceConsumption.unlimitedProcessing, this);
 						progress.registerDispatch();
-						j.started();
+						nextJob.started();
 
 						// Task is now on the VM. We will receive a conComplete message if it is done.
 						return false;
@@ -99,7 +104,7 @@ public class FirstFitJobScheduler implements JobLauncher, ConsumptionEvent {
 			} else {
 				// The job's executable is not supported by any VMs. We need to ask the VI to
 				// manage VMs with this kind of executable as well.
-				vi.regNewVMKind(j.executable == null ? "default" : j.executable);
+				vi.regNewVMKind(nextJob.executable == null ? "default" : nextJob.executable);
 			}
 
 		} catch (NetworkException ne) {
@@ -112,10 +117,11 @@ public class FirstFitJobScheduler implements JobLauncher, ConsumptionEvent {
 
 	/**
 	 * If a job is done, it's completion event will be registered as a status update
-	 * against our {@link #progress} object.
+	 * against our {@link #progress} object, set job ran to true.
 	 */
 	@Override
 	public void conComplete() {
+		nextJob.completed();
 		progress.registerCompletion();
 	}
 
