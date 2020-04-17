@@ -4,6 +4,7 @@
 package uk.ac.ljmu.fet.cs.cloud.examples.autoscaler;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.IaaSService;
@@ -36,6 +37,12 @@ public class BufferTiersVI extends VirtualInfrastructure {
 	private int droppedVMs;
 
 	/**
+	 * Keeps track of VMs in buffer, to that it will only destroy VMs that have been
+	 * inactive for an hour
+	 */
+	private final HashMap<VirtualMachine, Integer> inactivePeriod = new HashMap<VirtualMachine, Integer>();
+
+	/**
 	 * Initialises the auto scaling mechanism
 	 * 
 	 * @param cloud the physical infrastructure to use to rent the VMs from
@@ -48,13 +55,14 @@ public class BufferTiersVI extends VirtualInfrastructure {
 	 * The auto scaling mechanism that is run regularly to determine if the virtual
 	 * infrastructure needs some changes. The logic is the following:
 	 * <ul>
-	 * <li>the buffer is the size of 8 virtual machines, with a multiplier
+	 * <li>the buffer is a preset number of virtual machines, with a multiplier
 	 * attached</li>
 	 * <li>first, create the initial buffer of virtual machines</li>
 	 * <li>if the buffer is half full, request a new Virtual Machine and reduce the
 	 * buffer's multiplier by 1 (minimum multiplier size: 1)</li>
 	 * <li>if the number of Virtual Machines in the buffer is larger than the
-	 * buffer's desired size, destroy the excess virtual machines in the buffer</li>
+	 * buffer's desired size, destroy the excess virtual machines in the buffer that
+	 * have been inactive in the buffer for more than 1 hour</li>
 	 * <li>if the amount of excess virtual machines destroyed is equal to the size
 	 * of the buffer, increase the multiplier by 1.</li>
 	 * </ul>
@@ -63,7 +71,7 @@ public class BufferTiersVI extends VirtualInfrastructure {
 	public void tick(long fires) {
 		// re-initialise droppedVMs to 0
 		droppedVMs = 0;
-		
+
 		final Iterator<String> kinds = vmSetPerKind.keySet().iterator();
 		while (kinds.hasNext()) {
 			final String kind = kinds.next();
@@ -98,8 +106,19 @@ public class BufferTiersVI extends VirtualInfrastructure {
 				} else if (bufferVMs.size() > (vmBuffer * bufferMultiplier)) {
 					// Buffer is too full, destroy excess VMs to save power.
 					for (int i = 0; i < bufferVMs.size() - (vmBuffer * bufferMultiplier); i++) {
-						destroyVM(bufferVMs.get(i));
-						droppedVMs++;
+						if (inactivePeriod.containsKey(bufferVMs.get(i))) {
+							// Already in the hash map
+							inactivePeriod.put(bufferVMs.get(i), (inactivePeriod.get(bufferVMs.get(i)) + 1));
+						} else {
+							// Not in the hash map
+							inactivePeriod.put(bufferVMs.get(i), 1);
+						}
+
+						if (inactivePeriod.get(bufferVMs.get(i)) > 30) {
+							// Inactive for 1 hour, destroy VM.
+							destroyVM(bufferVMs.get(i));
+							droppedVMs++;
+						}
 					}
 
 					if (droppedVMs >= (vmBuffer * bufferMultiplier)) {
